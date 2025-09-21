@@ -1,34 +1,51 @@
-name: Python Package using Conda
+name: Dcard Crawler CL3
 
-on: [push]
+on:
+  push:
+    branches:
+      - main
+  schedule:
+    - cron: '0 2 * * *'  # 每天 UTC 02:00 自動跑
 
 jobs:
-  build-linux:
+  crawler:
     runs-on: ubuntu-latest
-    strategy:
-      max-parallel: 5
 
     steps:
-    - uses: actions/checkout@v4
-    - name: Set up Python 3.10
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python
       uses: actions/setup-python@v3
       with:
-        python-version: '3.10'
-    - name: Add conda to system path
-      run: |
-        # $CONDA is an environment variable pointing to the root of the miniconda directory
-        echo $CONDA/bin >> $GITHUB_PATH
+        python-version: '3.11'
+
     - name: Install dependencies
       run: |
-        conda env update --file environment.yml --name base
-    - name: Lint with flake8
+        python -m pip install --upgrade pip
+        pip install undetected-chromedriver selenium webdriver-manager keyboard pandas tqdm
+
+    - name: Convert notebooks to scripts/
       run: |
-        conda install flake8
-        # stop the build if there are Python syntax errors or undefined names
-        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-        # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
-        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
-    - name: Test with pytest
+        mkdir -p scripts
+        for notebook in $(find . -name "*.ipynb"); do
+          base=$(basename "$notebook" .ipynb)
+          jupyter nbconvert --to script "$notebook" --output "scripts/$base"
+        done
+
+    - name: Run crawler
       run: |
-        conda install pytest
-        pytest
+        mkdir -p output
+        python scripts/你的爬蟲檔名.py  # 確保你的爬蟲程式會把 CSV 存到 output/
+
+    - name: Clean CSV
+      run: |
+        python scripts/你的CSV清理檔.py  # 清理 output/ 裡的 CSV
+
+    - name: Commit scripts and output
+      run: |
+        git config user.name "github-actions"
+        git config user.email "github-actions@github.com"
+        git add scripts/*.py output/*.csv
+        git commit -m "Auto-update crawler scripts and CSVs" || echo "No changes to commit"
+        git push
