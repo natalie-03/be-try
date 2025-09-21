@@ -5,7 +5,7 @@ on:
     branches:
       - main
   schedule:
-    - cron: '0 2 * * *'  # 每天 UTC 02:00 自動跑
+    - cron: '0 10 * * *'  # 每天台灣時間 18:00 (UTC+8)
 
 jobs:
   crawler:
@@ -16,16 +16,17 @@ jobs:
       uses: actions/checkout@v4
 
     - name: Set up Python
-      uses: actions/setup-python@v3
+      uses: actions/setup-python@v4
       with:
         python-version: '3.11'
 
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
+        pip install jupyter nbconvert
         pip install undetected-chromedriver selenium webdriver-manager keyboard pandas tqdm
 
-    - name: Convert notebooks to scripts/
+    - name: Convert notebooks to scripts
       run: |
         mkdir -p scripts
         for notebook in $(find . -name "*.ipynb"); do
@@ -36,11 +37,11 @@ jobs:
     - name: Run crawler
       run: |
         mkdir -p output
-        python scripts/你的爬蟲檔名.py  # 確保你的爬蟲程式會把 CSV 存到 output/
+        python scripts/Dcard爬蟲.py   # 你的爬蟲主程式
 
     - name: Clean CSV
       run: |
-        python scripts/你的CSV清理檔.py  # 清理 output/ 裡的 CSV
+        python scripts/Dcard清理.py   # 你的清理程式 (請改成實際檔名)
 
     - name: Commit scripts and output
       run: |
